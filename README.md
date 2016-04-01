@@ -26,7 +26,6 @@ So you need to change your `tslint.json` to:
 }
 ```
 
-
 ## Features
 - [x] Basic scaffolding
 - Source delivery mechanisms
