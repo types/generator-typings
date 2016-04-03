@@ -26,10 +26,13 @@ module.exports = yeoman.Base.extend({
   initializing: {
     loadRepo() {
       const done = this.async();
+      console.log('initializing...');
       NodeGit.Repository.open(path.resolve('.')).then((repo) => {
         this.repo = repo;
+        console.log('found repo');
         done();
       }, () => {
+        console.log('repo not found');
         done();
       });
     }
