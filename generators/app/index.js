@@ -301,7 +301,8 @@ module.exports = yeoman.Base.extend({
         {
           name: this.npmName || this.sourcePackageName,
           main: 'index.d.ts',
-          homepage: `https://github.com/${this.sourceUri}`
+          homepage: `https://github.com/${this.sourceUri}`,
+          version: ''
         });
     },
     createREADME() {
@@ -330,8 +331,7 @@ module.exports = yeoman.Base.extend({
         this.destinationPath('package.json'),
         {
           ambient: this.isAmbient ? ' --ambient' : '',
-          sourceTest: 'echo source-test is not specified',
-          version: ''
+          sourceTest: 'echo source-test is not specified'
         });
     },
     createLICENSE() {
