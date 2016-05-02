@@ -22,7 +22,7 @@
   "dependencies": {
     "chalk": "^1.0.0",
     "change-case": "^2.3.1",
-    "yeoman-generator": "^0.22.5",
+    "yeoman-generator": "^0.23.0",
     "yosay": "^1.1.0"
   },
   "devDependencies": {
