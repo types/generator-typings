@@ -9,6 +9,7 @@ const yosay = require('yosay');
 const changeCase = require('change-case');
 const rc = require('rc');
 const extend = require('extend');
+const typings = require('typings-core');
 
 const simpleGit = require('simple-git');
 
@@ -345,7 +346,8 @@ module.exports = yeoman.Base.extend({
             child.stderr.on('data', (data) => {
               try {
                 const result = JSON.parse(data.toString());
-                if (result.id === 'validate') {
+                console.log('stderr', result);
+                if (result.id === 'validate' || result.id === 'cached') {
                   this.props.sourceRepository = result.data.pkgMeta._source;
                 }
               }
@@ -353,9 +355,10 @@ module.exports = yeoman.Base.extend({
             });
             child.stdout.on('data', (data) => {
               const result = JSON.parse(data.toString());
+              console.log('stdout', result);
               if (result.latest.main) {
                 const main = path.parse(result.latest.main);
-                this.propse.sourceMain = path.join(main.dir, main.name);
+                this.props.sourceMain = path.join(main.dir, main.name);
               }
               else {
                 this.props.sourceMain = 'index';
@@ -577,6 +580,24 @@ module.exports = yeoman.Base.extend({
         extend(this.props, props);
       });
     },
+    calcProperties() {
+      const devPackages = ['onchange', 'typings', 'ts-node', 'tslint', 'tslint-config-typings'];
+      const typingsPackages = [];
+      if (this.props.testFramework === 'blue-tape') {
+        devPackages.push('tap-spec', 'blue-tape');
+        typingsPackages.push('registry:npm/blue-tape');
+      }
+      switch (this.props.browserTestHarness) {
+        case 'tape-run+jspm':
+          devPackage.push('stream', 'jspm', 'tape-run');
+          break;
+        case 'tape-run+browserify':
+          devPackages.push('globby', 'browserify', 'tsify', 'tape-run');
+          break;
+      }
+      this.props.devDependencies = devPackages;
+      this.props.typingsDevDependencies = typingsPackages;
+    },
     printProps() {
       this.log('');
       this.log('');
@@ -639,6 +660,16 @@ module.exports = yeoman.Base.extend({
           browserTest: ~this.props.sourcePlatforms.indexOf('browser') ?
             'node npm-scripts/test "test/**.*.ts"' : 'echo no browser test'
         });
+
+      if (this.props.sourceDeliveryType === 'bower') {
+        this.fs.copyTpl(
+          this.templatePath('template/bower.json'),
+          this.destinationPath('bower.json'),
+          {
+            packageName: this.props.repositoryName
+          }
+        );
+      }
 
       this.fs.copyTpl(
         this.templatePath(`template/${this.props.license}.txt`),
@@ -703,26 +734,23 @@ module.exports = yeoman.Base.extend({
     }
   },
   install: {
-    npmInstallSource() {
+    installBowerPackages() {
+      if (this.props.sourceDeliveryType === 'bower') {
+        this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
+        this.bowerInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
+      }
+    },
+    installNpmPackages() {
       if (this.props.sourceDeliveryType === 'npm') {
         this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
-        // this.npmInstall([this.props.sourceDeliveryPackageName], { 'saveDev': true, 'saveExact': true });
-        this.spawnCommandSync('npm', ['install', '-D', '--save-exact', this.props.sourceDeliveryPackageName]);
+        this.npmInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
       }
-      const devPackages = ['onchange', 'typings', 'ts-node', 'tslint', 'tslint-config-typings'];
-      if (this.props.testFramework === 'blue-tape') {
-        devPackages.push('tap-spec', 'blue-tape');
+      // this.npmInstall(this.props.devDependencies, { 'save-dev': true })
+    },
+    installTypingsPackages() {
+      if (this.props.typingsDevDependencies.length > 0) {
+        typings.installDependenciesRaw(this.props.typingsDevDependencies, { cwd: this.destinationPath(), saveDev: true });
       }
-      switch (this.props.browserTestHarness) {
-        case 'tape-run+jspm':
-          devPackage.push('stream', 'jspm', 'tape-run');
-          break;
-        case 'tape-run+browserify':
-          devPackages.push('globby', 'browserify', 'tsify', 'tape-run');
-          break;
-      }
-
-      // this.spawnCommand('npm', ['install', '-D'].concat(devPackages));
     },
     createGitHubRepo() {
 
