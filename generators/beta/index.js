@@ -658,7 +658,8 @@ module.exports = yeoman.Base.extend({
           sourceTest: 'echo no source test',
           test: ~this.props.sourcePlatforms.indexOf('node') ? 'cd test && ts-node ../node_modules/blue-tape/bin/blue-tape \\"**/*.ts\\" | tap-spec' : 'echo no server test',
           browserTest: ~this.props.sourcePlatforms.indexOf('browser') ?
-            'node npm-scripts/test "test/**.*.ts"' : 'echo no browser test'
+            'node npm-scripts/test "test/**.*.ts"' : 'echo no browser test',
+          sourceMain: this.props.sourceMain
         });
 
       if (this.props.sourceDeliveryType === 'bower') {
@@ -734,30 +735,31 @@ module.exports = yeoman.Base.extend({
     }
   },
   install: {
-    installBowerPackages() {
-      if (this.props.sourceDeliveryType === 'bower') {
-        this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
-        this.bowerInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
+    installSourcePackage() {
+      this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
+      switch (this.props.sourceDeliveryType) {
+        case 'bower':
+          this.bowerInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
+          break;
+        case 'npm':
+          this.npmInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
+          break;
       }
     },
     installDevDependencies() {
-      if (this.props.sourceDeliveryType === 'npm') {
-        this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
-        this.npmInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
-      }
-      // this.npmInstall(this.props.devDependencies, { 'save-dev': true })
+      this.npmInstall(this.props.devDependencies, { 'save-dev': true })
     },
     installTypingsPackages() {
       if (this.props.typingsDevDependencies.length > 0) {
         typings.installDependenciesRaw(this.props.typingsDevDependencies, { cwd: this.destinationPath(), saveDev: true });
       }
     },
-    createGitHubRepo() {
-      // github.authenticate({
-      //   type: 'basic',
+    // createGitHubRepo() {
+    //   github.authenticate({
+    //     type: 'basic',
 
-      // })
-    },
+    //   })
+    // },
     createGitRepo() {
       if (this.git) return;
       this.git = simpleGit().init();
@@ -767,14 +769,21 @@ module.exports = yeoman.Base.extend({
       this.log(`Downloading ${chalk.green(this.props.sourceRepository)}...`);
       this.git.submoduleAdd(this.props.sourceRepository, 'source', done);
     },
+    // initCommit() {
+    //   this.git.add('./*')
+    //     .commit('init commit');
+    // }
     addRemote() {
       const done = this.async();
       this.git.getRemotes(true, (result) => {
-        // just assume when there is remote, it is correctly pointing to github.
+        // assume when there is remote, it is correctly pointing to github.
         if (!result) {
-          this.git.addRemote('origin', `https://github.com/${this.props.username}/${this.props.repositoryName}.git`);
+          this.git.addRemote('origin', `https://github.com/${this.props.username}/${this.props.repositoryName}.git`)
         }
-        done();
+
+        this.git.push(['-u', 'origin', 'master'], () => {
+          done();
+        });
       });
     },
   },

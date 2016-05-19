@@ -25,10 +25,10 @@
     "extend": "^3.0.0",
     "github": "^0.2.4",
     "rc": "^1.1.6",
-    "simple-git": "^1.31.1",
+    "simple-git": "^1.35.0",
     "typings-core": "^1.0.1",
     "yeoman-generator": "^0.23.3",
-    "yosay": "^1.1.0"
+    "yosay": "^1.1.1"
   },
   "devDependencies": {
     "eslint-config-xo-space": "^0.12.0",
@@ -39,10 +39,8 @@
     "gulp-mocha": "^2.0.0",
     "gulp-nsp": "^2.1.0",
     "gulp-plumber": "^1.0.0",
-    "tslint": "^3.7.0",
     "yeoman-assert": "^2.2.1",
-    "yeoman-test": "^1.4.0",
-    "yosay": "^1.1.1"
+    "yeoman-test": "^1.4.0"
   },
   "eslintConfig": {
     "extends": "xo-space",

@@ -2,11 +2,10 @@
   "dependencies": {
     "chalk": "registry:npm/chalk#1.0.0+20160211003958"
   },
-  "ambientDependencies": {},
   "devDependencies": {
     "rc": "registry:npm/rc#1.1.0+20160211003958"
   },
-  "ambientDevDependencies": {
-    "node": "registry:dt/node#4.0.0+20160319033040"
+  "globalDevDependencies": {
+    "node": "registry:env/node#4.0.0+20160507210304"
   }
 }
