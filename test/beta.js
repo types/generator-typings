@@ -4,7 +4,7 @@ var assert = require('yeoman-assert');
 var helpers = require('yeoman-test');
 
 describe('beta', function() {
-  describe.only('npm dryrun', function() {
+  describe('npm dryrun', function() {
     before(function() {
       this.timeout(60000);
       return helpers.run(path.join(__dirname, '../generators/beta'))
