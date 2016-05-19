@@ -740,7 +740,7 @@ module.exports = yeoman.Base.extend({
         this.bowerInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
       }
     },
-    installNpmPackages() {
+    installDevDependencies() {
       if (this.props.sourceDeliveryType === 'npm') {
         this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
         this.npmInstall([this.props.sourceDeliveryPackageName], { 'save-dev': true, 'save-exact': true });
@@ -753,19 +753,29 @@ module.exports = yeoman.Base.extend({
       }
     },
     createGitHubRepo() {
+      // github.authenticate({
+      //   type: 'basic',
 
+      // })
     },
     createGitRepo() {
       if (this.git) return;
       this.git = simpleGit().init();
     },
-    addRemote() {
-
-    },
     submodule() {
+      const done = this.async();
       this.log(`Downloading ${chalk.green(this.props.sourceRepository)}...`);
-      // Currently this step is needed to pass test. Will use nodegit for this.
-      // this.spawnCommandSync('git', ['submodule', 'add', `${this.props.sourceRepository}`, 'source']);
+      this.git.submoduleAdd(this.props.sourceRepository, 'source', done);
+    },
+    addRemote() {
+      const done = this.async();
+      this.git.getRemotes(true, (result) => {
+        // just assume when there is remote, it is correctly pointing to github.
+        if (!result) {
+          this.git.addRemote('origin', `https://github.com/${this.props.username}/${this.props.repositoryName}.git`);
+        }
+        done();
+      });
     },
   },
   end: {
