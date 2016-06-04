@@ -564,6 +564,7 @@ module.exports = yeoman.Base.extend({
         );
       }
 
+      console.log('in writing...', this.props);
       this.fs.copyTpl(
         this.templatePath(`template/${this.props.license}.txt`),
         this.destinationPath('LICENSE'),
