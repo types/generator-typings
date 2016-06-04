@@ -17,10 +17,11 @@ module.exports = function createTemplateCommmands(generator) {
     const defaultConfigTemplate = {
       username: generator.props.username,
       repositoryNamePrefix: 'typed-',
-      repositoryOrganization: undefined,
-      license: 'MIT',
+      repositoryOrganization: generator.props.username,
       testFramework: 'blue-tape',
-      browserTestHarness: 'tape-run+jspm'
+      browserTestHarness: 'tape-run+jspm',
+      license: 'MIT',
+      licenseSignature: generator.props.username,
     };
     return configTemplate = rc('generator-typings', defaultConfigTemplate);
   }

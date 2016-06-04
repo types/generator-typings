@@ -88,10 +88,7 @@ describe(GENERATOR_NAME, () => {
       .on('ready', (gen) => {
         generator = gen;
       })
-      .toPromise()
-      .then(() => {
-        console.log(generator.props);
-      });
+      .toPromise();
   });
   it('generator npm package using custom values', () => {
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
