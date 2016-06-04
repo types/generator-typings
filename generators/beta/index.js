@@ -25,6 +25,8 @@ module.exports = yeoman.Base.extend({
     this.argument('typingsName', { type: String, required: false, desc: `If specified, this will be used as the ${chalk.green('<repositoryName>')} and the repo will be created under this folder` });
 
     this.option('update-template', { desc: 'Update template', defaults: false });
+    this.options('debug', { desc: 'Print debug info', defaults: false });
+
     this.props = {};
   },
   initializing: {
@@ -438,12 +440,14 @@ module.exports = yeoman.Base.extend({
       this.props.typingsDevDependencies = typingsPackages;
       this.props.typingsGlobalDevDependencies = typingsGlobalPackages;
     },
-    printProps() {
-      this.log('');
-      this.log('Overal props for debug purpose:');
-      this.log('');
-
-      this.log(this.props);
+    printDebugInfo() {
+      if (this.options.debug) {
+        this.log('');
+        this.log(chalk.bgYellow('debug: props'));
+        this.log(this.props);
+        this.log(chalk.bgYellow('debug: configTemplate'));
+        this.log(this.configTemplate);
+      }
     },
   },
   writing: {
