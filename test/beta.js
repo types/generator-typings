@@ -19,7 +19,7 @@ const template = {
 describe(GENERATOR_NAME, () => {
   describe('update template', () => {
     it('update and use template', function() {
-      this.timeout(20000);
+      this.timeout(5000);
       return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
         .withOptions({
           updateTemplate: true,
@@ -31,7 +31,7 @@ describe(GENERATOR_NAME, () => {
             sourceDeliveryType: 'npm',
             sourceDeliveryPackageName: 'nop',
             sourceUsages: ['commonjs'],
-            sourcePlatforms: ['node'],
+            sourcePlatforms: ['node', 'browser'],
             usePresetValues: true
           }
         ))
@@ -56,7 +56,7 @@ describe(GENERATOR_NAME, () => {
           assert.jsonFileContent('package.json', {
             scripts: {
               build: 'echo building... && typings bundle -o out/index.d.ts',
-              'all-tests': 'npm test'
+              'all-tests': 'npm test && npm run browser-test'
             }
           });
           assert.jsonFileContent('typings.json', {
@@ -71,7 +71,7 @@ describe(GENERATOR_NAME, () => {
     });
   });
   it('generate npm package using default template', function() {
-    this.timeout(20000);
+    this.timeout(5000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withPrompts({
         sourceDeliveryType: 'npm',

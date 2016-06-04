@@ -43,7 +43,7 @@ describe(`${GENERATOR_NAME} git tests`, () => {
   });
   it('should clone the github repo', function () {
     var generator;
-    this.timeout(20000);
+    this.timeout(5000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withOptions({
         skipConfiguring: true,

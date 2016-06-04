@@ -1,37 +1,22 @@
 'use strict';
 const fs = require('fs');
 const path = require('path');
-const url = require('url');
 const yeoman = require('yeoman-generator');
 const inquirer = require('inquirer');
 const chalk = require('chalk');
 const yosay = require('yosay');
 const changeCase = require('change-case');
-const rc = require('rc');
 const extend = require('extend');
 const typings = require('typings-core');
 
 const createGitCommands = require('./createGitCommands');
-
-// const GitHubApi = require('github');
-
-// const github = new GitHubApi({
-//   version: "3.0.0",
-//   protocol: "https",
-//   host: "api.github.com",
-//   timeout: 5000,
-//   header: {
-//     "user-agent": "generator-typings"
-//   }
-// });
+const createTemplateCommands = require('./createTemplateCommands');
 
 const collectingSourceInfo = [];
-const collectingLocalInfo = [];
 
 const TEMPLATEVERSION = 0;
 const GENERATORVERSION = '1.0 beta';
 const globalConfigPath = path.join(process.env.HOME, '.generator-typingsrc');
-
 
 module.exports = yeoman.Base.extend({
   constructor: function () {
@@ -40,106 +25,7 @@ module.exports = yeoman.Base.extend({
     this.argument('typingsName', { type: String, required: false, desc: `If specified, this will be used as the ${chalk.green('<repositoryName>')} and the repo will be created under this folder` });
 
     this.option('update-template', { desc: 'Update template', defaults: false });
-    this.option('skip-git', { defaults: false, hide: true, desc: 'Skip git related operations. For testing only.' });
     this.props = {};
-    this.updateConfigTemplate = function () {
-      const questions = [
-        {
-          type: 'input',
-          name: 'username',
-          message: `Your username on ${chalk.green('GitHub')}`,
-          default: this.configTemplate.username,
-        },
-        {
-          type: 'input',
-          name: 'repositoryOrganization',
-          message: (props) => `https://github.com/${chalk.green('<organization>')}/${this.configTemplate.repositoryNamePrefix}*`,
-          default: (props) => this.configTemplate.repositoryOrganization || props.username,
-        },
-        {
-          type: 'input',
-          name: 'repositoryNamePrefix',
-          message: (props) => {
-            return `https://github.com/${props.repositoryOrganization}/${chalk.green(this.configTemplate.repositoryNamePrefix)}*`
-          },
-          default: this.configTemplate.repositoryNamePrefix,
-        },
-        {
-          type: 'list',
-          name: 'testFramework',
-          message: `Your ${chalk.green('test framework')} of choice`,
-          choices: ['blue-tape'],
-          default: this.configTemplate.testFramework,
-        },
-        {
-          type: 'list',
-          name: 'browserTestHarness',
-          message: `Your ${chalk.cyan('browser')} ${chalk.green('test harness')}`,
-          choices: (props) => {
-            switch (props.testFramework) {
-              case 'blue-tape':
-              default:
-                return [
-                  // tsify not working with TS 1.9 yet
-                  // { name: 'tape-run + browserify', value: 'tape-run+browserify' },
-                  { name: 'tape-run + jspm', value: 'tape-run+jspm' },
-                ];
-            }
-          },
-          default: this.configTemplate.browserTestHarness,
-        },
-        {
-          type: 'list',
-          name: 'license',
-          message: `Which ${chalk.green('license')} do you want to use?`,
-          choices: [
-            { name: 'Apache 2.0', value: 'Apache-2.0' },
-            { name: 'MIT', value: 'MIT' },
-            { name: 'Unlicense', value: 'unlicense' },
-            { name: 'FreeBSD', value: 'BSD-2-Clause-FreeBSD' },
-            { name: 'NewBSD', value: 'BSD-3-Clause' },
-            { name: 'Internet Systems Consortium (ISC)', value: 'ISC' },
-            { name: 'No License (Copyrighted)', value: 'nolicense' }
-          ],
-          default: this.configTemplate.license,
-        },
-        {
-          type: 'input',
-          name: 'licenseSignature',
-          message: `Your signature in the license: Copyright (c) ${new Date().getFullYear()} ${chalk.green('<signature>')}`,
-          default: (props) => this.configTemplate.licenseSignature || props.username,
-        },
-      ];
-
-      return this.prompt(questions).then((props) => {
-        props.version = TEMPLATEVERSION;
-        this.configTemplate = props;
-        this.configTemplate.default = false;
-        fs.writeFileSync(globalConfigPath, JSON.stringify(this.configTemplate));
-        this.log('Got it! The template is saved.')
-      });
-    };
-    this.generatePropsFromConfigTemplate = function () {
-      const repoName = this.typingsName || this.props.repositoryName || this.configTemplate.repositoryNamePrefix + this.props.sourceDeliveryPackageName
-      let props = {
-        username: this.configTemplate.username,
-        repositoryName: repoName,
-        repositoryOrganization: this.props.repositoryOrganization || this.configTemplate.repositoryOrganization,
-        license: this.configTemplate.license,
-        licenseSignature: this.configTemplate.licenseSignature,
-      };
-
-      if (~this.props.sourcePlatforms.indexOf('node')) {
-        props.testFramework = this.configTemplate.testFramework;
-      }
-
-      if (~this.props.sourcePlatforms.indexOf('browser')) {
-        props.testFramework = this.configTemplate.testFramework;
-        props.browserTestHarness = this.configTemplate.browserTestHarness;
-      }
-
-      return props;
-    };
   },
   initializing: {
     changeDestinationRoot() {
@@ -158,40 +44,38 @@ module.exports = yeoman.Base.extend({
         this.log(chalk.red(err));
         process.exit(1);
       });
+    },
+    loadConfigTemplate() {
+      this.templateCommands = createTemplateCommands(this);
+      this.configTemplate = this.templateCommands.loadOrCreate();
     }
   },
   prompting: {
     greeting() {
       this.log(yosay(`Welcome to the sensational ${chalk.yellow('typings')} generator!`));
     },
-    loadConfigTemplate() {
-      // Missing `version` indicates it is the default config.
-      const defaultConfigTemplate = {
-        username: this.props.username,
-        repositoryNamePrefix: 'typed-',
-        repositoryOrganization: undefined,
-        license: 'MIT',
-        testFramework: 'blue-tape',
-        browserTestHarness: 'tape-run+jspm'
-      };
-
-      this.configTemplate = rc('generator-typings', defaultConfigTemplate);
-
+    updateConfigTemplate() {
+      let updating;
       if (this.options.updateTemplate) {
         this.log(`You want to update your ${chalk.green('template')}? Here it goes...`);
-        return this.updateConfigTemplate();
+        updating = this.templateCommands.update();
       }
       else if (typeof this.configTemplate.version === 'undefined') {
         this.log(`Seems like this is the ${chalk.cyan('first time')} you use this generator.`);
         this.log(`Let's quickly setup the ${chalk.green('template')}...`);
-
-        return this.updateConfigTemplate();
+        updating = this.templateCommands.update();
       }
       else if (this.configTemplate.version !== TEMPLATEVERSION) {
         this.log(`Seems like you have ${chalk.cyan('updated')} this generator. The template has changed.`);
         this.log(`Let's quickly update the ${chalk.green('template')}...`);
+        updating = this.templateCommands.update();
+      }
 
-        return this.updateConfigTemplate();
+      if (updating) {
+        return updating.then((configTemplate) => {
+          this.configTemplate = configTemplate;
+          this.log('Got it! The template is saved.')
+        });
       }
     },
     enterSourceSection() {
@@ -397,7 +281,7 @@ module.exports = yeoman.Base.extend({
       this.log(`Good, now about the ${chalk.yellow('typings')} itself...`);
     },
     confirmQuickSetup() {
-      let genProps = this.generatePropsFromConfigTemplate();
+      let genProps = this.templateCommands.generateProps();
       this.log('Based on your configured template, ...');
       this.log(`${chalk.green('repository')}: ${chalk.cyan(`${genProps.repositoryOrganization}/${genProps.repositoryName}`)}`);
       this.log(`${chalk.green('Github username')}: ${chalk.cyan(genProps.username)}`);
@@ -630,7 +514,7 @@ module.exports = yeoman.Base.extend({
           sourceTest: 'echo no source test',
           test: ~this.props.sourcePlatforms.indexOf('node') ? 'cd test && ts-node ../node_modules/blue-tape/bin/blue-tape \\"**/*.ts\\" | tap-spec' : 'echo no server test',
           browserTest: ~this.props.sourcePlatforms.indexOf('browser') ?
-            'node npm-scripts/test "test/**.*.ts"' : 'echo no browser test',
+            'node npm-scripts/test \\"test/**/*.ts\\"' : 'echo no browser test',
           sourceMain: this.props.sourceMain,
           allTestScript: (() => {
             let tests = [];
