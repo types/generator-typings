@@ -71,8 +71,13 @@ describe(GENERATOR_NAME, () => {
     });
   });
   it('generate npm package using default template', function() {
+    let generator;
+
     this.timeout(5000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
+      .withOptions({
+        skipGit: true
+      })
       .withPrompts({
         sourceDeliveryType: 'npm',
         sourceDeliveryPackageName: 'nop',
@@ -80,10 +85,13 @@ describe(GENERATOR_NAME, () => {
         sourcePlatforms: ['node'],
         usePresetValues: true,
       })
-      .withOptions({
-        skipGit: true
+      .on('ready', (gen) => {
+        generator = gen;
       })
-      .toPromise();
+      .toPromise()
+      .then(() => {
+        console.log(generator.props);
+      });
   });
   it('generator npm package using custom values', () => {
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))

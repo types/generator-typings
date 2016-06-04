@@ -1,3 +1,4 @@
+'use strict'
 const path = require('path');
 const assert = require('yeoman-assert');
 const helpers = require('yeoman-test');
@@ -19,7 +20,7 @@ const template = {
 
 describe(`${GENERATOR_NAME} git tests`, () => {
   it('should use current and parent dir as repo name and org when it is not a git repo', () => {
-    var generator;
+    let generator;
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withOptions({
         skipConfiguring: true,
@@ -33,8 +34,8 @@ describe(`${GENERATOR_NAME} git tests`, () => {
       })
       .toPromise()
       .then((dir) => {
-        var currentDir = path.basename(dir);
-        var parentDir = path.basename(path.resolve(dir, '..'));
+        let currentDir = path.basename(dir);
+        let parentDir = path.basename(path.resolve(dir, '..'));
         assert.objectContent(generator.props, {
           repositoryName: currentDir,
           repositoryOrganization: parentDir,
@@ -42,7 +43,7 @@ describe(`${GENERATOR_NAME} git tests`, () => {
       });
   });
   it('should clone the github repo', function () {
-    var generator;
+    let generator;
     this.timeout(5000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withOptions({
@@ -74,7 +75,7 @@ describe(`${GENERATOR_NAME} git tests`, () => {
       });
   });
   it('when it is a cloned git repo', () => {
-    var generator;
+    let generator;
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withOptions({
         skipConfiguring: true,
@@ -84,7 +85,7 @@ describe(`${GENERATOR_NAME} git tests`, () => {
         skipGit: true
       })
       .inTmpDir((dir) => {
-        var git = simpleGit(dir);
+        let git = simpleGit(dir);
         return new Promise((resolve) => {
           git.clone('https://github.com/typings/generator-typings-blank-repo-for-test', '.', () => {
             resolve();
