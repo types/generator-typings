@@ -86,10 +86,8 @@ describe(`${GENERATOR_NAME} git tests`, () => {
       })
       .inTmpDir((dir) => {
         let git = simpleGit(dir);
-        console.log('inTmpDir', dir);
         return new Promise((resolve) => {
           git.clone('https://github.com/typings/generator-typings-blank-repo-for-test', '.', () => {
-            console.log('cloned');
             resolve();
           });
         });
@@ -99,7 +97,6 @@ describe(`${GENERATOR_NAME} git tests`, () => {
       })
       .toPromise()
       .then((dir) => {
-        console.log('then prop', generator.props);
         assert.objectContent(generator.props, {
           repositoryName: 'generator-typings-blank-repo-for-test',
           repositoryOrganization: 'typings',
