@@ -85,6 +85,9 @@ describe(GENERATOR_NAME, () => {
         sourcePlatforms: ['node'],
         usePresetValues: true,
       })
+      .inTmpDir((dir) => {
+        fs.writeFileSync('.generator-typingsrc', JSON.stringify(template));
+      })
       .on('ready', (gen) => {
         generator = gen;
       })
