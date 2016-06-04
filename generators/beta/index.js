@@ -11,7 +11,7 @@ const rc = require('rc');
 const extend = require('extend');
 const typings = require('typings-core');
 
-const simpleGit = require('simple-git');
+const createGitCommands = require('./createGitCommands');
 
 // const GitHubApi = require('github');
 
@@ -125,7 +125,6 @@ module.exports = yeoman.Base.extend({
         username: this.configTemplate.username,
         repositoryName: repoName,
         repositoryOrganization: this.props.repositoryOrganization || this.configTemplate.repositoryOrganization,
-        repositoryRemoteUrl: this.props.repositoryRemoteUrl || `https://github.com/${this.props.repositoryOrganization}/${repoName}.git`,
         license: this.configTemplate.license,
         licenseSignature: this.configTemplate.licenseSignature,
       };
@@ -141,91 +140,29 @@ module.exports = yeoman.Base.extend({
 
       return props;
     };
-    this.readGitConfig = function readGitConfig(name) {
-      return new Promise((resolve, reject) => {
-        var result;
-        const child = this.spawnCommand('git', ['config', name], { stdio: [0, 'pipe'] });
-        child.on('close', (code) => {
-          resolve(result);
-        });
-
-        child.stdout.on('data', (data) => {
-          result = data.toString().trim();
-        });
-      });
-    };
-    this.loadGitConfig = function loadGitConfig(repositoryPath) {
-      return Promise.all([
-        new Promise((resolve, reject) => {
-          repositoryPath = path.resolve(repositoryPath);
-          var result = {
-            repositoryName: path.basename(repositoryPath),
-            repositoryOrganization: path.basename(path.join(repositoryPath, '..'))
-          };
-
-          if (fs.existsSync(path.join(repositoryPath, '.git'))) {
-            var git = simpleGit(repositoryPath);
-            this.git = git;
-            git.getRemotes(true, (err, out) => {
-              const origins = out.filter((entry) => {
-                return entry.name === 'origin';
-              });
-
-              if (origins.length === 1) {
-                result.repositoryRemoteUrl = origins[0].refs.fetch;
-                const u = url.parse(result.repositoryRemoteUrl);
-
-                const parts = u.pathname.substring(1).split('/', 2);
-                let repoName = parts[1];
-                result.repositoryName = repoName.indexOf('.git') === repoName.length - 4 ? repoName.slice(0, -4) : repoName;
-                result.repositoryOrganization = parts[0];
-              }
-
-              resolve(result);
-            });
-          }
-          else {
-            resolve(result);
-          }
-        }),
-        this.readGitConfig('user.username'),
-        this.readGitConfig('user.name'),
-        this.readGitConfig('user.email'),
-      ]).then((results) => {
-        var result = results[0];
-        result.username = results[1];
-        result.name = results[2];
-        result.email = results[3];
-        return result;
-      });
-    };
   },
   initializing: {
-    loadRepo() {
-      collectingLocalInfo.push(
-        this.loadGitConfig(this.typingsName || '.').then((value) => {
-          extend(this.props, value);
-        })
-      );
+    changeDestinationRoot() {
+      if (this.typingsName) {
+        this.destinationRoot(this.typingsName);
+      }
+    },
+    loadGitConfig() {
+      this.git = createGitCommands(this, this.destinationPath());
+      return Promise.all([
+        this.git.loadConfig(),
+        this.git.loadRepoInfo()
+      ]).then((values) => {
+        extend(this.props, values[0], values[1]);
+      }, (err) => {
+        this.log(chalk.red(err));
+        process.exit(1);
+      });
     }
   },
   prompting: {
-    betaGreeting() {
-      this.log('Welcome to the beta! Let me know if my questions make sense to you.');
-      this.log('Now, let\'s get started...');
-      this.log('');
-    },
     greeting() {
       this.log(yosay(`Welcome to the sensational ${chalk.yellow('typings')} generator!`));
-    },
-    waitForLocalInfo() {
-      const done = this.async();
-      Promise.all(collectingLocalInfo).then(
-        () => done(),
-        (err) => {
-          this.log(err);
-          process.exit(1);
-        });
     },
     loadConfigTemplate() {
       // Missing `version` indicates it is the default config.
@@ -438,6 +375,7 @@ module.exports = yeoman.Base.extend({
             { name: 'others (e.g. atom)', value: 'others' },
           ],
           validate: (values) => values.length > 0,
+          default: []
         }).then((props) => {
           this.props.sourcePlatforms = props.sourcePlatforms;
         });
@@ -520,13 +458,10 @@ module.exports = yeoman.Base.extend({
         },
       ]).then((props) => {
         extend(this.props, props);
-        if (!this.props.repositoryRemoteUrl) {
-          this.props.repositoryRemoteUrlToAdd = `https://github.com/${props.repositoryOrganization}/${props.repositoryName}.git`;
-        }
       });
     },
     askGitHubInfo() {
-      if (this.props.usePresetValues || this.props.repositoryRemoteUrl) return;
+      if (this.props.usePresetValues) return;
       return this.prompt([
         {
           type: 'input',
@@ -628,11 +563,6 @@ module.exports = yeoman.Base.extend({
     },
   },
   writing: {
-    changeDestinationRoot() {
-      if (this.typingsName) {
-        this.destinationRoot(this.typingsName);
-      }
-    },
     // createGitHubRepo() {
     //   github.authenticate({
     //     type: 'basic',
@@ -644,15 +574,13 @@ module.exports = yeoman.Base.extend({
       if (this.options['skip-git']) return;
 
       // Assume the repo is cloned from remote
-      if (this.git) return;
+      if (this.git.repoExists) return;
 
-      const done = this.async();
-      this.git = this.typingsName ? simpleGit(this.destinationPath()) : simpleGit();
-      this.git.clone(this.props.repositoryRemoteUrlToAdd, '.', () => {
-        done();
-      });
+      return this.git.clone(`https://github.com/${this.props.repositoryOrganization}/${this.props.repositoryName}.git`);
     },
     copyFiles() {
+      if (this.options.skipWriting) return;
+
       this.fs.copy(
         this.templatePath('*'),
         this.destinationPath()
@@ -821,6 +749,8 @@ module.exports = yeoman.Base.extend({
   },
   install: {
     installSourcePackage() {
+      if (this.options.skipInstall) return;
+
       this.log(`Installing ${chalk.cyan(this.props.sourceDeliveryPackageName)}...`);
       switch (this.props.sourceDeliveryType) {
         case 'bower':
@@ -832,9 +762,13 @@ module.exports = yeoman.Base.extend({
       }
     },
     installDevDependencies() {
+      if (this.options.skipInstall) return;
+
       this.npmInstall(this.props.devDependencies, { 'save-dev': true, 'progress': false, 'loglevel': 'silent' });
     },
     installTypingsPackages() {
+      if (this.options.skipInstall) return;
+
       if (this.props.typingsDevDependencies.length > 0) {
         typings.installDependenciesRaw(this.props.typingsDevDependencies, { cwd: this.destinationPath(), saveDev: true });
       }
@@ -843,11 +777,10 @@ module.exports = yeoman.Base.extend({
       }
     },
     submodule() {
-      if (this.options['skip-git']) return;
+      if (this.options.skipGit) return;
 
-      const done = this.async();
-      this.log(`Downloading ${chalk.green(this.props.sourceRepository)}...`);
-      this.git.submoduleAdd(this.props.sourceRepository, 'source', done);
+      this.log(`Submoduling ${chalk.green(this.props.sourceRepository)} into ${chalk.cyan('source')} folder...`);
+      return this.git.addSubmodule(this.props.sourceRepository, 'source');
     },
     startShowQuotes() {
       this.log(chalk.yellow('Waiting for installion to complete...'));

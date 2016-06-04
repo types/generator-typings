@@ -18,7 +18,8 @@ const template = {
 
 describe(GENERATOR_NAME, () => {
   describe('update template', () => {
-    it('update and use template', () => {
+    it('update and use template', function() {
+      this.timeout(20000);
       return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
         .withOptions({
           updateTemplate: true,
@@ -69,7 +70,8 @@ describe(GENERATOR_NAME, () => {
         });
     });
   });
-  it('generate npm package using default template', () => {
+  it('generate npm package using default template', function() {
+    this.timeout(20000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withPrompts({
         sourceDeliveryType: 'npm',
