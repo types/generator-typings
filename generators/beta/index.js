@@ -25,7 +25,7 @@ module.exports = yeoman.Base.extend({
     this.argument('typingsName', { type: String, required: false, desc: `If specified, this will be used as the ${chalk.green('<repositoryName>')} and the repo will be created under this folder` });
 
     this.option('update-template', { desc: 'Update template', defaults: false });
-    this.options('debug', { desc: 'Print debug info', defaults: false });
+    this.option('debug', { desc: 'Print debug info', defaults: false });
 
     this.props = {};
   },
