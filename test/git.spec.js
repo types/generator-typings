@@ -94,6 +94,7 @@ describe(`${GENERATOR_NAME} git tests`, () => {
         skipGit: true
       })
       .on('ready', (gen) => {
+        console.log('helper say ready');
         generator = gen;
       })
       .toPromise()
