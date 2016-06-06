@@ -24,7 +24,7 @@
     "chalk": "^1.0.0",
     "change-case": "^2.3.1",
     "extend": "^3.0.0",
-    "github": "^0.2.4",
+    "github": "^1.1.1",
     "rc": "^1.1.6",
     "simple-git": "^1.35.0",
     "typings-core": "^1.0.1",
