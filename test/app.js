@@ -24,6 +24,7 @@ describe(GENERATOR_NAME, () => {
     this.timeout(5000);
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .inTmpDir((dir) => {
+        fs.writeFileSync('.generator-typingsrc', JSON.stringify(template));
         fs.mkdirSync('source');
       })
       .withOptions({
