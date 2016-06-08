@@ -18,6 +18,37 @@ const template = {
 };
 
 describe(GENERATOR_NAME, () => {
+  it('skip submodule if source already exists', function () {
+    let generator;
+
+    this.timeout(5000);
+    return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
+      .inTmpDir((dir) => {
+        fs.mkdirSync('source');
+      })
+      .withOptions({
+        skipGit: true
+      })
+      .withPrompts({
+        sourceDeliveryType: 'npm',
+        sourceDeliveryPackageName: 'nop',
+        sourceUsages: ['commonjs'],
+        sourcePlatforms: ['node', 'browser'],
+        useGeneratedValues: true
+      })
+      .on('ready', (gen) => {
+        generator = gen;
+      })
+      .toPromise()
+      .then(() => {
+        return new Promise((r) => {
+          fs.rmdir('source', (err) => {
+            assert(!err);
+            r();
+          });
+        });
+      });
+  });
   it('uses typingsName', function () {
     let generator;
 
@@ -44,7 +75,7 @@ describe(GENERATOR_NAME, () => {
       .then((dir) => {
         let root = generator.destinationRoot();
         assert.equal(path.basename(root), 'testtype');
-          assert.deepEqual(fs.readdirSync(generator.destinationRoot()),
+        assert.deepEqual(fs.readdirSync(generator.destinationRoot()),
           ['.editorconfig',
             '.gitignore',
             '.travis.yml',
