@@ -19,7 +19,8 @@ const template = {
 };
 
 describe(`${GENERATOR_NAME} git tests`, () => {
-  it('should use current and parent dir as repo name and org when it is not a git repo', () => {
+  it.only('should use current and parent dir as repo name and org when it is not a git repo', () => {
+    console.log('starting test');
     let generator;
     return helpers.run(path.join(__dirname, `../generators/${GENERATOR_NAME}`))
       .withOptions({
@@ -30,10 +31,12 @@ describe(`${GENERATOR_NAME} git tests`, () => {
         skipGit: true
       })
       .on('ready', (gen) => {
+        console.log('ready to go');
         generator = gen;
       })
       .toPromise()
       .then((dir) => {
+        console.log('inside then', dir);
         let currentDir = path.basename(dir);
         let parentDir = path.basename(path.resolve(dir, '..'));
         assert.objectContent(generator.props, {
